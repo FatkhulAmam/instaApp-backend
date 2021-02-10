@@ -1,5 +1,5 @@
 const joi = require('joi')
-const { user, posts } = require('../models')
+const { user, posts, comment } = require('../models')
 const paging = require('../helpers/pagination')
 const responseStandart = require('../helpers/response')
 const { Op } = require('sequelize')
@@ -66,5 +66,45 @@ module.exports = {
       }
     )
     return responseStandart(res, 'List all post', { result, pageInfo })
+  },
+  getPostsById: async (req, res) => {
+    const { id } = req.params
+    const results = await posts.findByPk(id)
+    if (results) {
+      return responseStandart(res, `post id ${id}`, { results })
+    }
+    return responseStandart(res, `post ${id} not found`, {}, 401, false)
+  },
+  addComment: async (req, res) => {
+    const { id } = req.user
+    const { postId } = req.params
+    console.log(req.params)
+    const schema = joi.object({
+      userComment: joi.string().required()
+    })
+    const { value: results, error } = schema.validate(req.body)
+    const { userComment } = results
+    if (!error) {
+      const dataUser = {
+        user_Id: id,
+        post_Id: postId,
+        description: userComment
+      }
+      await comment.create(dataUser)
+      return responseStandart(res, 'post a comment success', {})
+    }
+    return responseStandart(res, 'error', {}, 401, false)
+  },
+  getCommentById: async (req, res) => {
+    const { id } = req.params
+    const results = await comment.findAll({
+      where: {
+        post_Id: id
+      }
+    })
+    if (results) {
+      return responseStandart(res, `All comment id ${id}`, { results })
+    }
+    return responseStandart(res, `Comment ${id} not found`, {}, 401, false)
   }
 }
